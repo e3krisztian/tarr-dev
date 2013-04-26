@@ -82,7 +82,7 @@ class TarrBatchTransform(BatchTransform):
 
     def get_tarr_transform(self):
         # minimal TARR program - do nothing
-        return [RETURN_TRUE]
+        return {'main': [RETURN_TRUE]}
 
     def transform(self, data):
         try:

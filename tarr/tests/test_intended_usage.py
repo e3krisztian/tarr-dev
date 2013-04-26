@@ -19,14 +19,16 @@ def other(data):
     return 'something else'
 
 
-PROGRAM = [
-    IF (is_animal),
-        animal,
-    ELSE,
-        other,
-    ENDIF,
-    RETURN_TRUE
-]
+PROGRAM = {
+    'main': [
+        IF (is_animal),
+            animal,
+        ELSE,
+            other,
+        ENDIF,
+        RETURN_TRUE
+        ]
+    }
 
 
 class TestDecorators(unittest.TestCase):

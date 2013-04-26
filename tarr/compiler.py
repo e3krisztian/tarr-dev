@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from tarr.compiler_base import (
     Instruction, BranchingInstruction,
     RETURN_TRUE, RETURN_FALSE,
-    DEF, IF, ELIF, ELSE, ENDIF,
+    IF, ELIF, ELSE, ENDIF,
     IF_NOT, ELIF_NOT)
 
 
@@ -417,6 +417,6 @@ __all__ = [
     Program,
     branch, rule, branch_rule, HAVE_NOT_DONE_IT,
     RETURN_TRUE, RETURN_FALSE,
-    DEF, IF, ELIF, ELSE, ENDIF,
+    IF, ELIF, ELSE, ENDIF,
     IF_NOT, ELIF_NOT,
 ]
