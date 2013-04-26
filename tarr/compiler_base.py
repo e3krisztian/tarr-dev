@@ -1,20 +1,4 @@
-class DuplicateLabelError(Exception):
-    pass
-
-
 class UndefinedLabelError(Exception):
-    pass
-
-
-class BackwardReferenceError(Exception):
-    pass
-
-
-class FallOverOnDefineError(Exception):
-    pass
-
-
-class UnclosedProgramError(Exception):
     pass
 
 
@@ -131,22 +115,6 @@ class BranchingInstruction(InstructionBase):
 
     def accept(self, visitor):
         visitor.visit_branch(self)
-
-
-class Define(Compilable):
-
-    label = None
-
-    def __init__(self, label):
-        self.label = label
-
-    def compile(self, compiler):
-        if compiler.path.is_open:
-            raise FallOverOnDefineError
-
-        compiler.start_define_label(self.label)
-
-DEF = Define
 
 
 class Runner(object):
@@ -337,20 +305,6 @@ class NewPathAppender(Appender):
         self.path.set_appender(InstructionAppender(instruction))
 
 
-class DefineAppender(Appender):
-    '''Defines the label when appending an instruction
-    '''
-
-    def __init__(self, compiler, path, label):
-        self.compiler = compiler
-        self.path = path
-        self.label = label
-
-    def append(self, instruction):
-        self.path.set_appender(InstructionAppender(instruction))
-        self.compiler.complete_define_label(self.label, instruction)
-
-
 class TrueBranchAppender(Appender):
     '''Appends to True side of a branch instruction
     '''
@@ -464,7 +418,6 @@ class Compiler(object):
     control_stack = None
     path = None
 
-    labels_with_indices = []
     previous_labels = None
     linkers = None
 
@@ -476,12 +429,12 @@ class Compiler(object):
         self.control_stack = []
         self.path = Path()
         self.instructions = list()
-        self.labels_with_indices = []
         self.previous_labels = set()
         self.linkers = dict()
 
     def compile(self, program_spec):
-        for instruction in program_spec:
+        main = program_spec['main']
+        for instruction in main:
             compilable = self.compilable(instruction)
             compilable.compile(self)
 
@@ -504,23 +457,6 @@ class Compiler(object):
         self.path.append(instruction)
         instruction.index = len(self.instructions)
         self.instructions.append(instruction)
-
-    def start_define_label(self, label):
-        if label in self.previous_labels:
-            raise DuplicateLabelError
-
-        self.labels_with_indices.append((label, len(self.instructions)))
-        self.path = Path()
-        # can not resolve label references yet, as the content
-        # (first instruction) is not known yet
-        self.path.set_appender(DefineAppender(self, self.path, label))
-
-    def complete_define_label(self, label, instruction):
-        self.previous_labels.add(label)
-        if label in self.linkers:
-            for linker in self.linkers[label]:
-                linker(instruction)
-            del self.linkers[label]
 
     def register_linker(self, label, linker):
         if label in self.previous_labels:
@@ -556,7 +492,6 @@ class Program(object):
     runner = None
 
     def __init__(self, program_spec):
-        self.labels_with_indices = None
         self.compile(program_spec)
 
     def run(self, state):
@@ -565,11 +500,10 @@ class Program(object):
     def compile(self, program_spec):
         compiler = Compiler()
         compiler.compile(program_spec)
-        self.init(compiler.instructions, compiler.labels_with_indices)
+        self.init(compiler.instructions)
 
-    def init(self, instructions, labels_with_indices):
+    def init(self, instructions):
         self.instructions = instructions
-        self.labels_with_indices = labels_with_indices
         self.runner = self.make_runner()
 
     @property
@@ -580,15 +514,9 @@ class Program(object):
         return Runner()
 
     def sub_programs(self):
-        (label, index) = (None, 0)
-        i = 0
-        while i < len(self.labels_with_indices):
-            (next_label, next_index) = self.labels_with_indices[i]
-            yield (label, self.instructions[index:next_index])
-            (label, index) = (next_label, next_index)
-            i += 1
-
-        yield (label, self.instructions[index:])
+        # raise AssertionError('Broken due to new macro implementation')
+        label = None
+        yield (label, self.instructions[:])
 
     def accept(self, visitor):
         for (label, instructions) in self.sub_programs():
