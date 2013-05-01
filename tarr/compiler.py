@@ -372,7 +372,10 @@ def branch(func):
     return func
 
 
-HAVE_NOT_DONE_IT = object()
+class HAVE_NOT_DONE_IT(object):
+    pass
+
+HAVE_NOT_DONE_IT = HAVE_NOT_DONE_IT()
 
 
 class TarrBranchRuleInstruction(TarrBranchInstruction):
