@@ -1,7 +1,3 @@
-class UnclosedProgramError(Exception):
-    pass
-
-
 class UndefinedLabelError(Exception):
     pass
 
@@ -171,8 +167,7 @@ class CompileIf(Compilable):
         self.branch_instruction = branch_instruction
 
     def compile(self, compiler):
-        branch_instruction = compiler.compilable(self.branch_instruction)
-        branch_instruction.compile(compiler)
+        compiler.compile_instruction(self.branch_instruction)
 
         if_path, else_path = compiler.path.split(compiler.last_instruction)
         compiler.control_stack.append(
@@ -212,8 +207,7 @@ class CompileElIf(Compilable):
             frame.if_path.join(frame.elif_path)
 
         compiler.path = frame.else_path
-        branch_instruction = compiler.compilable(self.branch_instruction)
-        branch_instruction.compile(compiler)
+        compiler.compile_instruction(self.branch_instruction)
 
         frame.elif_path, frame.else_path = frame.else_path.split(
             compiler.last_instruction)
@@ -356,7 +350,6 @@ class Path(object):
 
     def __init__(self, appender=None):
         self.appender = appender or NewPathAppender(self)
-        self._closed = False
 
     def append(self, instruction):
         self.appender.append(instruction)
@@ -372,23 +365,13 @@ class Path(object):
         return true_path, false_path
 
     def join(self, path):
-        self._closed = self.is_closed and path.is_closed
         self.appender = JoinAppender(self, path)
 
     def set_appender(self, appender):
         self.appender = appender
 
-    @property
-    def is_open(self):
-        return not self._closed
-
-    @property
-    def is_closed(self):
-        return self._closed
-
     def close(self):
         self.set_appender(NoopAppender())
-        self._closed = True
 
 
 class IfElseControlFrame(object):
@@ -420,35 +403,35 @@ class Compiler(object):
     control_stack = None
     path = None
 
-    previous_labels = None
-
     @property
     def last_instruction(self):
         return self.instructions[-1]
 
-    def __init__(self):
+    def __init__(self, program):
+        '''
+        Create a compiler for the [end-]user defined `program`.
+        '''
+        self.program = program
         self.control_stack = []
         self.path = Path()
         self.instructions = list()
-        self.previous_labels = set()
 
-    def compile(self, program_spec):
-        main = program_spec['main']
-        for instruction in main:
-            compilable = self.compilable(instruction)
-            compilable.compile(self)
+    def compile(self, sub_program_name):
+        sub_program = self.program[sub_program_name]
+        for instruction in sub_program:
+            self.compile_instruction(instruction)
 
         if self.control_stack:
             raise MissingEndIfError
 
-        if self.path.is_open:
-            raise UnclosedProgramError
-
-    def compilable(self, instruction):
+    def compile_instruction(self, instruction):
         if isinstance(instruction, basestring):
-            return Call(instruction)
+            self.compile_subprogram(instruction)
+        else:
+            instruction.compile(self)
 
-        return instruction
+    def compile_subprogram(self, sub_program_name):
+        Call(sub_program_name).compile(self)
 
     def add_instruction(self, instruction):
         self.path.append(instruction)
@@ -482,15 +465,15 @@ class Program(object):
     instructions = None
     runner = None
 
-    def __init__(self, program_spec):
-        self.compile(program_spec)
+    def __init__(self, program):
+        self.compile(program)
 
     def run(self, state):
         return self.runner.run(self.start_instruction, state)
 
-    def compile(self, program_spec):
-        compiler = Compiler()
-        compiler.compile(program_spec)
+    def compile(self, program):
+        compiler = Compiler(program)
+        compiler.compile('main')
         self.init(compiler.instructions)
 
     def init(self, instructions):
