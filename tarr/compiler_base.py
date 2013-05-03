@@ -2,10 +2,6 @@ class UnclosedProgramError(Exception):
     pass
 
 
-class BackwardReferenceError(Exception):
-    pass
-
-
 class UndefinedLabelError(Exception):
     pass
 
@@ -158,8 +154,6 @@ class Call(BranchingInstruction):
 
     def compile(self, compiler):
         super(Call, self).compile(compiler)
-        compiler.register_linker(
-            self.label, compiler.last_instruction.set_start_instruction)
 
     def set_start_instruction(self, instruction):
         self.start_instruction = instruction
@@ -427,7 +421,6 @@ class Compiler(object):
     path = None
 
     previous_labels = None
-    linkers = None
 
     @property
     def last_instruction(self):
@@ -438,7 +431,6 @@ class Compiler(object):
         self.path = Path()
         self.instructions = list()
         self.previous_labels = set()
-        self.linkers = dict()
 
     def compile(self, program_spec):
         main = program_spec['main']
@@ -448,9 +440,6 @@ class Compiler(object):
 
         if self.control_stack:
             raise MissingEndIfError
-
-        if self.linkers:
-            raise UndefinedLabelError(set(self.linkers.keys()))
 
         if self.path.is_open:
             raise UnclosedProgramError
@@ -465,12 +454,6 @@ class Compiler(object):
         self.path.append(instruction)
         instruction.index = len(self.instructions)
         self.instructions.append(instruction)
-
-    def register_linker(self, label, linker):
-        if label in self.previous_labels:
-            raise BackwardReferenceError
-
-        self.linkers.setdefault(label, []).append(linker)
 
 
 class ProgramVisitor(object):
