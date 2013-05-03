@@ -1,3 +1,11 @@
+class UnclosedProgramError(Exception):
+    pass
+
+
+class BackwardReferenceError(Exception):
+    pass
+
+
 class UndefinedLabelError(Exception):
     pass
 

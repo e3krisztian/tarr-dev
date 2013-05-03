@@ -151,7 +151,7 @@ class Test_Program_visualization(unittest.TestCase):
         'main': [
             'su"bprogram',  # name contains " to check dot escape
             m.RETURN_TRUE
-            ],
+        ],
 
         'su"bprogram': [
             m.IF (odd),
@@ -159,8 +159,8 @@ class Test_Program_visualization(unittest.TestCase):
                 m.RETURN_FALSE,
             m.ENDIF,
             m.RETURN_TRUE
-            ]
-        }
+        ]
+    }
 
     def program(self):
         return m.Program(self.visualized_program_spec)
@@ -222,16 +222,15 @@ class Test_Program_statistics(unittest.TestCase):
         return prog
 
     def test_statistics_created(self):
-        prog = m.Program(
-            {
+        prog = m.Program({
             'main': [
                 Noop,
                 m.RETURN_TRUE,
                 Noop,
                 Noop,
                 m.RETURN_TRUE
-                ]
-            })
+            ]
+        })
         prog.run(None)
 
         self.assertEqual(2, len(prog.statistics))
@@ -355,8 +354,7 @@ class Test_decorators(unittest.TestCase):
     def test_branch(self):
         # program: convert an odd number to string 'odd',
         # an even number to 'even'
-        prog = m.Program(
-            {
+        prog = m.Program({
             'main': [
                 m.IF (odd),
                     const_odd,
@@ -364,23 +362,22 @@ class Test_decorators(unittest.TestCase):
                     const_even,
                 m.ENDIF,
                 m.RETURN_TRUE
-                ]
-            })
+            ]
+        })
 
         self.assertEqualData(Data(id, 'even'), prog.run(Data(id, 0)))
         self.assertEqualData(Data(id, 'odd'), prog.run(Data(id, 1)))
 
     def test_rule_branch(self):
         # program: add 2 to value if odd, else leave it
-        prog = m.Program(
-            {
+        prog = m.Program({
             'main': [
                 m.IF (increase_if_odd),
                     add1,
                 m.ENDIF,
                 m.RETURN_TRUE,
-                ]
-            })
+            ]
+        })
 
         self.assertEqualData(Data(id, 0), prog.run(Data(id, 0)))
         self.assertEqualData(Data(id, 3), prog.run(Data(id, 1)))
@@ -388,8 +385,7 @@ class Test_decorators(unittest.TestCase):
     def test_multiple_use_of_instructions(self):
         # program: convert an odd number to string 'odd',
         # an even number to 'even'
-        prog = m.Program(
-            {
+        prog = m.Program({
             'main': [
                 odd,
                 m.IF (odd),
@@ -402,8 +398,8 @@ class Test_decorators(unittest.TestCase):
                     const_even,
                 m.ENDIF,
                 m.RETURN_TRUE
-                ]
-            })
+            ]
+        })
 
         self.assertEqualData(Data(id, 'even'), prog.run(Data(id, 0)))
         self.assertEqualData(Data(id, 'odd'), prog.run(Data(id, 1)))

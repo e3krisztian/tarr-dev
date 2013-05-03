@@ -27,8 +27,8 @@ PROGRAM = {
             other,
         ENDIF,
         RETURN_TRUE
-        ]
-    }
+    ]
+}
 
 
 class TestDecorators(unittest.TestCase):

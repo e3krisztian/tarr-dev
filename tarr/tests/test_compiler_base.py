@@ -256,8 +256,7 @@ class Test_Program(unittest.TestCase):
     # TODO: add test against recursion
 
     def test_branch_on_yes(self):
-        prog = self.program(
-            {
+        prog = self.program({
             'main': [
                 IF (IsOdd),
                     Add1,
@@ -265,20 +264,19 @@ class Test_Program(unittest.TestCase):
                     'add2',
                 ENDIF,
                 RETURN_TRUE
-                ],
+            ],
 
             'add2': [
                 Add1,
                 Add1,
                 RETURN_TRUE
-                ]
-            })
+            ]
+        })
         self.assertEqual(4, prog.run(3))
         self.assertEqual(6, prog.run(4))
 
     def test_branch_on_no(self):
-        prog = self.program(
-            {
+        prog = self.program({
             'main': [
                 IF (IsOdd),
                     Add1,
@@ -287,23 +285,22 @@ class Test_Program(unittest.TestCase):
                     'add1',
                 ENDIF,
                 RETURN_TRUE
-                ],
+            ],
 
             'add1': [
                 Add1,
                 RETURN_TRUE
-                ]
-            })
+            ]
+        })
         self.assertEqual(5, prog.run(4))
         self.assertEqual(5, prog.run(3))
 
     def test_string_as_call_symbol(self):
-        prog = self.program(
-            {
+        prog = self.program({
             'main': ['+1', '+2', RETURN_TRUE],
-            '+2':   ['+1', '+1', RETURN_TRUE],
-            '+1':   [Add1, RETURN_TRUE]
-            })
+            '+2': ['+1', '+1', RETURN_TRUE],
+            '+1': [Add1, RETURN_TRUE]
+        })
         self.assertEqual(3, prog.run(0))
 
     def test_compilation_with_missing_ENDIF_is_not_possible(self):
@@ -312,27 +309,26 @@ class Test_Program(unittest.TestCase):
 
     def test_compilation_with_multiple_ELSE_is_not_possible(self):
         with self.assertRaises(MultipleElseError):
-            self.program({'main': [IF (IsOdd), ELSE, ELSE, ENDIF, RETURN_TRUE]})
+            self.program(
+                {'main': [IF (IsOdd), ELSE, ELSE, ENDIF, RETURN_TRUE]})
 
     def test_IF(self):
-        prog = self.program(
-            {
+        prog = self.program({
             'main': [
                 IF (IsOdd),
                     Add1,
                 ENDIF,
                 Add1,
                 RETURN_TRUE
-                ]
-            })
+            ]
+        })
 
         self.assertEqual(1, prog.run(0))
         self.assertEqual(3, prog.run(1))
         self.assertEqual(3, prog.run(2))
 
     def test_IF_NOT(self):
-        prog = self.program(
-            {
+        prog = self.program({
             'main': [
                 IF_NOT (Eq('value')),
                     Const('IF_NOT'),
@@ -345,8 +341,8 @@ class Test_Program(unittest.TestCase):
                 ENDIF,
                 Add('.'),
                 RETURN_TRUE
-                ]
-            })
+            ]
+        })
 
         self.assertEqual('value.', prog.run('value'))
         self.assertEqual('IF_NOT.', prog.run('?'))
@@ -360,16 +356,15 @@ class Test_Program(unittest.TestCase):
                 ENDIF,
                 Add1,
                 RETURN_TRUE
-                ]
-            })
+            ]
+        })
 
         self.assertEqual(2, prog.run(0))
         self.assertEqual(2, prog.run(1))
         self.assertEqual(4, prog.run(2))
 
     def test_IF_ELSE(self):
-        prog = self.program(
-            {
+        prog = self.program({
             'main': [
                 IF (IsOdd),
                     Add1,
@@ -379,16 +374,15 @@ class Test_Program(unittest.TestCase):
                 ENDIF,
                 Add1,
                 RETURN_TRUE
-                ]
-            })
+            ]
+        })
 
         self.assertEqual(3, prog.run(0))
         self.assertEqual(3, prog.run(1))
         self.assertEqual(5, prog.run(2))
 
     def test_IF_ELIF_ELSE(self):
-        prog = self.program(
-            {
+        prog = self.program({
             'main': [
                 IF (Eq('value')),
                     Const('IF'),
@@ -401,8 +395,8 @@ class Test_Program(unittest.TestCase):
                 ENDIF,
                 Add('.'),
                 RETURN_TRUE
-                ]
-            })
+            ]
+        })
 
         self.assertEqual('IF.', prog.run('value'))
         self.assertEqual('ELIF1.', prog.run('variant1'))
@@ -410,8 +404,7 @@ class Test_Program(unittest.TestCase):
         self.assertEqual('ELSE.', prog.run('unknown'))
 
     def test_IF_ELIF_NOT_ELSE(self):
-        prog = self.program(
-            {
+        prog = self.program({
             'main': [
                 IF (Eq('value')),
                     Const('IF'),
@@ -424,16 +417,15 @@ class Test_Program(unittest.TestCase):
                 ENDIF,
                 Add('.'),
                 RETURN_TRUE
-                ]
-            })
+            ]
+        })
 
         self.assertEqual('IF.', prog.run('value'))
         self.assertEqual('ELIF_NOT.', prog.run('not_variant'))
         self.assertEqual('ELSE.', prog.run('variant'))
 
     def test_IF_NOT_ELSE(self):
-        prog = self.program(
-            {
+        prog = self.program({
             'main': [
                 IF_NOT (Eq('value')),
                     # not value
@@ -444,28 +436,26 @@ class Test_Program(unittest.TestCase):
                 ENDIF,
                 Add('.'),
                 RETURN_TRUE
-                ]
-            })
+            ]
+        })
 
         self.assertEqual('IF_NOT.', prog.run('unkown'))
         self.assertEqual('ELSE.', prog.run('value'))
 
     def test_compilation_with_ELIF_after_ELSE_is_not_possible(self):
         with self.assertRaises(ElIfAfterElseError):
-            self.program(
-            {
-            'main': [
-                IF (IsOdd),
-                ELSE,
-                ELIF (IsOdd),
-                ENDIF,
-                RETURN_TRUE
+            self.program({
+                'main': [
+                    IF (IsOdd),
+                    ELSE,
+                    ELIF (IsOdd),
+                    ENDIF,
+                    RETURN_TRUE
                 ]
             })
 
     def test_embedded_IFs(self):
-        prog = self.program(
-            {
+        prog = self.program({
             'main': [
                 IF (IsOdd),
                     Add1,
@@ -478,8 +468,9 @@ class Test_Program(unittest.TestCase):
                     Add1,
                 ENDIF,
                 Div2,
-                RETURN_TRUE]
-            })
+                RETURN_TRUE
+            ]
+        })
 
         self.assertEqual(1, prog.run(0))
         self.assertEqual(1, prog.run(1))
@@ -489,14 +480,13 @@ class Test_Program(unittest.TestCase):
         self.assertEqual(2, prog.run(5))
 
     def test_macro_return_yes(self):
-        prog = self.program(
-            {
+        prog = self.program({
             'main': [
                 IF ('odd?'),
                     Add1,
                 ENDIF,
                 RETURN_TRUE
-                ],
+            ],
 
             'odd?': [
                 IF (IsOdd),
@@ -504,21 +494,20 @@ class Test_Program(unittest.TestCase):
                 ELSE,
                     RETURN_FALSE,
                 ENDIF
-                ]
-            })
+            ]
+        })
 
         self.assertEqual(2, prog.run(1))
         self.assertEqual(4, prog.run(3))
 
     def test_macro_return_no(self):
-        prog = self.program(
-            {
+        prog = self.program({
             'main': [
                 IF ('odd?'),
                     Add1,
                 ENDIF,
                 RETURN_TRUE
-                ],
+            ],
 
             'odd?': [
                 IF (IsOdd),
@@ -526,8 +515,8 @@ class Test_Program(unittest.TestCase):
                 ELSE,
                     RETURN_FALSE,
                 ENDIF
-                ]
-            })
+            ]
+        })
 
         self.assertEqual(2, prog.run(2))
         self.assertEqual(4, prog.run(4))
@@ -541,7 +530,7 @@ class Test_Program(unittest.TestCase):
                 Add1,
             ENDIF,
             RETURN_TRUE
-            ],
+        ],
 
         'even?': [
             IF (IsOdd),
@@ -549,8 +538,8 @@ class Test_Program(unittest.TestCase):
             ELSE,
                 RETURN_TRUE,
             ENDIF
-            ]
-        }
+        ]
+    }
 
     def test_macro_return(self):
         prog = self.program(self.complex_prog_spec)
@@ -566,14 +555,14 @@ class Test_Program(unittest.TestCase):
         indices = [i.index for i in prog.instructions]
         self.assertEqual(range(len(prog.instructions)), indices)
 
-    @unittest.skip('visiting a program is broken due to new macro implementation')
+    @unittest.skip(
+        'visiting a program is broken due to new macro implementation')
     def test_sub_programs(self):
-        prog = self.program(
-            {
+        prog = self.program({
             'main': [
                 Add1,
                 m.RETURN_TRUE
-                ],
+            ],
 
             'x1': [m.RETURN_TRUE],
             'x2': [m.RETURN_TRUE],
@@ -582,8 +571,8 @@ class Test_Program(unittest.TestCase):
                 Add1,
                 Add1,
                 m.RETURN_TRUE
-                ]
-            })
+            ]
+        })
 
         sub_programs = iter(prog.sub_programs())
         sub_program = sub_programs.next()
@@ -605,10 +594,10 @@ class Test_Program(unittest.TestCase):
         with self.assertRaises(StopIteration):
             sub_programs.next()
 
-    @unittest.skip('visiting a program is broken due to new macro implementation')
+    @unittest.skip(
+        'visiting a program is broken due to new macro implementation')
     def program_for_visiting_with_all_features(self):
-        return self.program(
-            {
+        return self.program({
             'main': ['x', m.RETURN_TRUE],
 
             'x': [
@@ -616,8 +605,8 @@ class Test_Program(unittest.TestCase):
                     Add1,
                 m.ENDIF,
                 m.RETURN_TRUE
-                ]
-            })
+            ]
+        })
 
     def check_visitor(self, visitor):
         prog = self.program_for_visiting_with_all_features()
