@@ -79,8 +79,8 @@ class Test_Path(unittest.TestCase):
         i2 = m.Instruction()
 
         path = m.Path()
-        path.append(i1)
-        path.append(i2)
+        path.append(i1, i1)
+        path.append(i2, i2)
 
         self.assertEqual(i2, next_instruction(i1))
 
@@ -91,8 +91,8 @@ class Test_Path(unittest.TestCase):
         i2 = m.Instruction()
 
         path = m.Path(m.InstructionAppender(i0))
-        path.append(i1)
-        path.append(i2)
+        path.append(i1, i1)
+        path.append(i2, i2)
 
         self.assertEqual(i1, next_instruction(i0))
 
@@ -104,13 +104,13 @@ class Test_Path(unittest.TestCase):
         p2i1 = m.Instruction()
 
         path1 = m.Path()
-        path1.append(p1i1)
+        path1.append(p1i1, p1i1)
         path2 = m.Path()
-        path2.append(p2i1)
+        path2.append(p2i1, p2i1)
 
         path1.join(path2)
 
-        path1.append(p1i2)
+        path1.append(p1i2, p1i2)
 
         self.assertEqual(p1i2, next_instruction(p1i1))
         self.assertEqual(p1i2, next_instruction(p2i1))
@@ -128,16 +128,16 @@ class Test_Path(unittest.TestCase):
         p3i1 = m.Instruction()
 
         path1 = m.Path()
-        path1.append(p1i1)
+        path1.append(p1i1, p1i1)
         path2 = m.Path()
-        path2.append(p2i1)
+        path2.append(p2i1, p2i1)
         path3 = m.Path()
-        path3.append(p3i1)
+        path3.append(p3i1, p3i1)
 
         path2.join(path3)
         path1.join(path2)
 
-        path1.append(p1i2)
+        path1.append(p1i2, p1i2)
 
         self.assertEqual(p1i2, next_instruction(p1i1))
         self.assertEqual(p1i2, next_instruction(p2i1))
@@ -150,30 +150,31 @@ class Test_Path(unittest.TestCase):
         p1i2 = m.Instruction()
 
         path1 = m.Path()
-        path1.append(m.Return())
+        iret = m.Return()
+        path1.append(iret, iret)
         path1.close()
         self.assertTrue(path1.is_closed)
         path2 = m.Path()
-        path2.append(p2i1)
+        path2.append(p2i1, p2i1)
 
         path1.join(path2)
         self.assertFalse(path1.is_closed)
 
-        path1.append(p1i2)
+        path1.append(p1i2, p1i2)
 
         self.assertEqual(p1i2, next_instruction(p2i1))
 
-    def test_TrueBranchAppender(self):
+    def test_YesBranchAppender(self):
         bi = m.BranchingInstruction()
         i1 = m.Instruction()
 
         path = m.Path()
-        path.set_appender(m.TrueBranchAppender(path, bi))
-        path.append(i1)
+        path.set_appender(m.YesBranchAppender(path, bi))
+        path.append(i1, i1)
 
         self.assertEqual(i1, bi.instruction_on_yes)
 
-    def test_TrueBranchAppender_does_not_touch_no_path(self):
+    def test_YesBranchAppender_does_not_touch_no_path(self):
         sentinel = object()
         bi = m.BranchingInstruction()
         bi.instruction_on_no = sentinel
@@ -181,36 +182,36 @@ class Test_Path(unittest.TestCase):
         i2 = m.Instruction()
 
         path = m.Path()
-        path.set_appender(m.TrueBranchAppender(path, bi))
-        path.append(i1)
-        path.append(i2)
+        path.set_appender(m.YesBranchAppender(path, bi))
+        path.append(i1, i1)
+        path.append(i2, i2)
 
         self.assertEqual(sentinel, bi.instruction_on_no)
 
-    def test_TrueBranchAppender_resets_appender(self):
+    def test_YesBranchAppender_resets_appender(self):
         bi = m.BranchingInstruction()
         i1 = m.Instruction()
         i2 = m.Instruction()
 
         path = m.Path()
-        path.set_appender(m.TrueBranchAppender(path, bi))
-        path.append(i1)
-        path.append(i2)
+        path.set_appender(m.YesBranchAppender(path, bi))
+        path.append(i1, i1)
+        path.append(i2, i2)
 
         self.assertEqual(i1, bi.instruction_on_yes)
         self.assertEqual(i2, next_instruction(i1))
 
-    def test_FalseBranchAppender(self):
+    def test_NoBranchAppender(self):
         bi = m.BranchingInstruction()
         i1 = m.Instruction()
 
         path = m.Path()
-        path.set_appender(m.FalseBranchAppender(path, bi))
-        path.append(i1)
+        path.set_appender(m.NoBranchAppender(path, bi))
+        path.append(i1, i1)
 
         self.assertEqual(i1, bi.instruction_on_no)
 
-    def test_FalseBranchAppender_does_not_touch_yes_path(self):
+    def test_NoBranchAppender_does_not_touch_yes_path(self):
         sentinel = object()
         bi = m.BranchingInstruction()
         bi.instruction_on_yes = sentinel
@@ -218,21 +219,21 @@ class Test_Path(unittest.TestCase):
         i2 = m.Instruction()
 
         path = m.Path()
-        path.set_appender(m.FalseBranchAppender(path, bi))
-        path.append(i1)
-        path.append(i2)
+        path.set_appender(m.NoBranchAppender(path, bi))
+        path.append(i1, i1)
+        path.append(i2, i2)
 
         self.assertEqual(sentinel, bi.instruction_on_yes)
 
-    def test_FalseBranchAppender_resets_appender(self):
+    def test_NoBranchAppender_resets_appender(self):
         bi = m.BranchingInstruction()
         i1 = m.Instruction()
         i2 = m.Instruction()
 
         path = m.Path()
-        path.set_appender(m.FalseBranchAppender(path, bi))
-        path.append(i1)
-        path.append(i2)
+        path.set_appender(m.NoBranchAppender(path, bi))
+        path.append(i1, i1)
+        path.append(i2, i2)
 
         self.assertEqual(i1, bi.instruction_on_no)
         self.assertEqual(i2, next_instruction(i1))

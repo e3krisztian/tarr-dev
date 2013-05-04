@@ -270,7 +270,7 @@ class Appender(object):
     Continue = how to append a new instruction to
     '''
 
-    def append(self, instruction):
+    def append(self, first_instruction, last_instruction):
         pass
 
 
@@ -285,9 +285,9 @@ class InstructionAppender(Appender):
     def __init__(self, instruction):
         self.last_instruction = instruction
 
-    def append(self, instruction):
-        self.last_instruction.set_next_instruction(instruction)
-        self.last_instruction = instruction
+    def append(self, first_instruction, last_instruction):
+        self.last_instruction.set_next_instruction(first_instruction)
+        self.last_instruction = last_instruction
 
 
 class NewPathAppender(Appender):
@@ -297,8 +297,8 @@ class NewPathAppender(Appender):
     def __init__(self, path):
         self.path = path
 
-    def append(self, instruction):
-        self.path.set_appender(InstructionAppender(instruction))
+    def append(self, first_instruction, last_instruction):
+        self.path.set_appender(InstructionAppender(last_instruction))
 
 
 class YesBranchAppender(Appender):
@@ -309,9 +309,9 @@ class YesBranchAppender(Appender):
         self.path = path
         self.branch_instruction = branch_instruction
 
-    def append(self, instruction):
-        self.branch_instruction.set_instruction_on_yes(instruction)
-        self.path.set_appender(InstructionAppender(instruction))
+    def append(self, first_instruction, last_instruction):
+        self.branch_instruction.set_instruction_on_yes(first_instruction)
+        self.path.set_appender(InstructionAppender(last_instruction))
 
 
 class NoBranchAppender(Appender):
@@ -322,9 +322,9 @@ class NoBranchAppender(Appender):
         self.path = path
         self.branch_instruction = branch_instruction
 
-    def append(self, instruction):
-        self.branch_instruction.set_instruction_on_no(instruction)
-        self.path.set_appender(InstructionAppender(instruction))
+    def append(self, first_instruction, last_instruction):
+        self.branch_instruction.set_instruction_on_no(first_instruction)
+        self.path.set_appender(InstructionAppender(last_instruction))
 
 
 class JoinAppender(Appender):
@@ -334,10 +334,10 @@ class JoinAppender(Appender):
         self.orig_appender = path.appender
         self.merged_path = merged_path
 
-    def append(self, instruction):
-        self.merged_path.append(instruction)
-        self.path.set_appender(InstructionAppender(instruction))
-        self.orig_appender.append(instruction)
+    def append(self, first_instruction, last_instruction):
+        self.merged_path.append(first_instruction, last_instruction)
+        self.orig_appender.append(first_instruction, last_instruction)
+        self.path.set_appender(InstructionAppender(last_instruction))
 
 
 class Path(object):
@@ -351,8 +351,8 @@ class Path(object):
     def __init__(self, appender=None):
         self.appender = appender or NewPathAppender(self)
 
-    def append(self, instruction):
-        self.appender.append(instruction)
+    def append(self, first_instruction, last_instruction):
+        self.appender.append(first_instruction, last_instruction)
 
     def split(self, branch_instruction):
         self.close()
@@ -434,7 +434,7 @@ class Compiler(object):
         Call(sub_program_name).compile(self)
 
     def add_instruction(self, instruction):
-        self.path.append(instruction)
+        self.path.append(instruction, instruction)
         instruction.index = len(self.instructions)
         self.instructions.append(instruction)
 
