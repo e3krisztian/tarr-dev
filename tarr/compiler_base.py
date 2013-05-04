@@ -301,8 +301,8 @@ class NewPathAppender(Appender):
         self.path.set_appender(InstructionAppender(instruction))
 
 
-class TrueBranchAppender(Appender):
-    '''Appends to True side of a branch instruction
+class YesBranchAppender(Appender):
+    '''Appends to `yes` side of a branch instruction
     '''
 
     def __init__(self, path, branch_instruction):
@@ -314,8 +314,8 @@ class TrueBranchAppender(Appender):
         self.path.set_appender(InstructionAppender(instruction))
 
 
-class FalseBranchAppender(Appender):
-    '''Appends to False side of a branch instruction
+class NoBranchAppender(Appender):
+    '''Appends to `no` side of a branch instruction
     '''
 
     def __init__(self, path, branch_instruction):
@@ -356,13 +356,13 @@ class Path(object):
 
     def split(self, branch_instruction):
         self.close()
-        true_path = Path()
-        true_path.set_appender(
-            TrueBranchAppender(true_path, branch_instruction))
-        false_path = Path()
-        false_path.set_appender(
-            FalseBranchAppender(false_path, branch_instruction))
-        return true_path, false_path
+        yes_path = Path()
+        yes_path.set_appender(
+            YesBranchAppender(yes_path, branch_instruction))
+        no_path = Path()
+        no_path.set_appender(
+            NoBranchAppender(no_path, branch_instruction))
+        return yes_path, no_path
 
     def join(self, path):
         self.appender = JoinAppender(self, path)
