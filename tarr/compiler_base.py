@@ -60,15 +60,12 @@ class Instruction(InstructionBase):
         visitor.visit_instruction(self)
 
 
-class Return(InstructionBase):
+class Return(Instruction):
 
     return_value = None
 
     def __init__(self, return_value=True):
         self.return_value = bool(return_value)
-
-    def next_instruction(self, exit_status):
-        return None
 
     def run(self, runner, state):
         if self.return_value is not None:
@@ -78,6 +75,7 @@ class Return(InstructionBase):
 
     def compile(self, compiler):
         super(Return, self).compile(compiler)
+        compiler.exits.append(compiler.last_instruction)
         compiler.path.close()
 
     def clone(self):
@@ -137,28 +135,11 @@ class Runner(object):
         return state
 
 
-class Call(BranchingInstruction):
+class EndSubProgram(BranchingInstruction):
+    '''Noop instruction joining exit paths in sub programs
 
-    label = None
-    start_instruction = None
-
-    def __init__(self, label):
-        self.label = label
-
-    def run(self, runner, state):
-        return runner.run(self.start_instruction, state)
-
-    def compile(self, compiler):
-        super(Call, self).compile(compiler)
-
-    def set_start_instruction(self, instruction):
-        self.start_instruction = instruction
-
-    def clone(self):
-        return self.__class__(self.label)
-
-    def accept(self, visitor):
-        visitor.visit_call(self)
+    Returns continue here.
+    '''
 
 
 class CompileIf(Compilable):
@@ -399,9 +380,10 @@ class IfElseControlFrame(object):
 
 class Compiler(object):
 
-    instructions = None
-    control_stack = None
-    path = None
+    instructions = list
+    control_stack = list
+    path = Path
+    exits = list
 
     @property
     def last_instruction(self):
@@ -413,6 +395,7 @@ class Compiler(object):
         '''
         self.program = program
         self.control_stack = []
+        self.exits = []
         self.path = Path()
         self.instructions = list()
 
@@ -427,6 +410,11 @@ class Compiler(object):
 
         if self.control_stack:
             raise MissingEndIfError
+
+        self.compile_instruction(EndSubProgram())
+        end_subprogram = self.last_instruction
+        for iret in self.exits:
+            iret.set_next_instruction(end_subprogram)
 
         self.set_indices()
 
@@ -446,7 +434,6 @@ class Compiler(object):
         compiler.compile(sub_program_name)
         self.path.append(compiler.instructions[0], compiler.last_instruction)
         self.instructions.extend(compiler.instructions)
-        Call(sub_program_name).compile(self)
 
     def add_instruction(self, instruction):
         self.path.append(instruction, instruction)

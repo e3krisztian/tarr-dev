@@ -153,12 +153,10 @@ class Test_Path(unittest.TestCase):
         iret = m.Return()
         path1.append(iret, iret)
         path1.close()
-        self.assertTrue(path1.is_closed)
         path2 = m.Path()
         path2.append(p2i1, p2i1)
 
         path1.join(path2)
-        self.assertFalse(path1.is_closed)
 
         path1.append(p1i2, p1i2)
 

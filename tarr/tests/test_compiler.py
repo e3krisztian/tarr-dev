@@ -233,7 +233,7 @@ class Test_Program_statistics(unittest.TestCase):
         })
         prog.run(None)
 
-        self.assertEqual(2, len(prog.statistics))
+        self.assertEqual(6, len(prog.statistics))
 
     COUNT_SENTINEL = -98
 
