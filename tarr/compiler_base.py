@@ -417,12 +417,23 @@ class Compiler(object):
         self.instructions = list()
 
     def compile(self, sub_program_name):
-        sub_program = self.program[sub_program_name]
+        try:
+            sub_program = self.program[sub_program_name]
+        except KeyError:
+            raise UndefinedLabelError(sub_program_name)
+
         for instruction in sub_program:
             self.compile_instruction(instruction)
 
         if self.control_stack:
             raise MissingEndIfError
+
+        self.set_indices()
+
+    def set_indices(self):
+        # indices = labels to match instructions with run-time statistics
+        for i, instruction in enumerate(self.instructions):
+            instruction.index = i
 
     def compile_instruction(self, instruction):
         if isinstance(instruction, basestring):
@@ -431,11 +442,14 @@ class Compiler(object):
             instruction.compile(self)
 
     def compile_subprogram(self, sub_program_name):
+        compiler = Compiler(self.program)
+        compiler.compile(sub_program_name)
+        self.path.append(compiler.instructions[0], compiler.last_instruction)
+        self.instructions.extend(compiler.instructions)
         Call(sub_program_name).compile(self)
 
     def add_instruction(self, instruction):
         self.path.append(instruction, instruction)
-        instruction.index = len(self.instructions)
         self.instructions.append(instruction)
 
 
