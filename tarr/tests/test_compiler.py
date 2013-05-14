@@ -216,10 +216,8 @@ class Test_Program_statistics(unittest.TestCase):
             False: m.RETURN_FALSE,
             None: m.RETURN_TRUE
         }
-        prog = m.Program(
+        return m.Program(
             {'main': [Noop, RETURN_MAP[condition], Noop, Noop, m.RETURN_TRUE]})
-        prog.runner.ensure_statistics(1)
-        return prog
 
     def test_statistics_created(self):
         prog = m.Program({
@@ -280,9 +278,7 @@ class Test_Program_statistics(unittest.TestCase):
         self.assertLess(run_time2, run_time3)
 
     def die_prog(self):
-        prog = m.Program({'main': [die, m.RETURN_TRUE]})
-        prog.runner.ensure_statistics(1)
-        return prog
+        return m.Program({'main': [die, m.RETURN_TRUE]})
 
     def run_and_expect_exception(self, prog):
         try:

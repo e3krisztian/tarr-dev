@@ -115,26 +115,6 @@ class BranchingInstruction(InstructionBase):
         visitor.visit_branch(self)
 
 
-class Runner(object):
-
-    exit_status = None
-
-    def set_exit_status(self, value):
-        self.exit_status = value
-
-    def run_instruction(self, instruction, state):
-        return instruction.run(self, state)
-
-    def run(self, start_instruction, state):
-        instruction = start_instruction
-
-        while instruction:
-            state = self.run_instruction(instruction, state)
-            instruction = instruction.next_instruction(self.exit_status)
-
-        return state
-
-
 class EndSubProgram(BranchingInstruction):
     '''Noop instruction joining exit paths in sub programs
 
@@ -448,9 +428,6 @@ class ProgramVisitor(object):
     def leave_subprogram(self, label):
         pass
 
-    def visit_call(self, i_call):
-        pass
-
     def visit_return(self, i_return):
         pass
 
@@ -459,6 +436,27 @@ class ProgramVisitor(object):
 
     def visit_branch(self, i_branch):
         pass
+
+
+# TODO: merge Runner into Program when exit_status is no longer on Runner
+class Runner(object):
+
+    exit_status = None
+
+    def set_exit_status(self, value):
+        self.exit_status = value
+
+    def run_instruction(self, instruction, state):
+        return instruction.run(self, state)
+
+    def run(self, start_instruction, state):
+        instruction = start_instruction
+
+        while instruction:
+            state = self.run_instruction(instruction, state)
+            instruction = instruction.next_instruction(self.exit_status)
+
+        return state
 
 
 class Program(object):

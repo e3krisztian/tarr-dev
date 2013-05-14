@@ -17,7 +17,7 @@ class InstructionStatistic(object):
     failure_count = int
     run_time = timedelta
 
-    def init(self, index):
+    def __init__(self, index):
         self.index = index
         self.item_count = 0
         self.success_count = 0
@@ -29,7 +29,7 @@ class InstructionStatistic(object):
         return self.item_count > self.success_count + self.failure_count
 
     def merge(self, from_stat):
-        assert self.node_name == from_stat.node_name
+        assert self.index == from_stat.index
         self.item_count += from_stat.item_count
         self.success_count += from_stat.success_count
         self.failure_count += from_stat.failure_count
@@ -38,14 +38,14 @@ class InstructionStatistic(object):
 
 class StatisticsCollectorRunner(compiler_base.Runner):
 
-    statistics = None
+    statistics = list
 
-    def __init__(self):
-        self.statistics = []
+    def __init__(self, instructions):
+        super(StatisticsCollectorRunner, self).__init__()
+        self.statistics = [
+            InstructionStatistic(i) for i in xrange(len(instructions))]
 
     def run_instruction(self, instruction, state):
-        self.ensure_statistics(instruction.index)
-
         before = datetime.now()
         stat = self.statistics[instruction.index]
         stat.item_count += 1
@@ -61,12 +61,6 @@ class StatisticsCollectorRunner(compiler_base.Runner):
         stat.run_time += after - before
 
         return state
-
-    def ensure_statistics(self, index):
-        while index >= len(self.statistics):
-            stat = InstructionStatistic()
-            stat.init(len(self.statistics))
-            self.statistics.append(stat)
 
 
 class ToTextVisitor(compiler_base.ProgramVisitor):
@@ -107,12 +101,6 @@ class ToTextVisitor(compiler_base.ProgramVisitor):
         else:
             self.addline('END # {0}'.format(label))
 
-    def format_call_line(self, i_call):
-        return 'CALL "{0}"'.format(i_call.label)
-
-    def visit_call(self, i_call):
-        self.format_branch(i_call, self.format_call_line(i_call))
-
     def visit_return(self, i_return):
         if i_return.return_value is None:
             self.format_instruction(i_return, 'RETURN')
@@ -150,12 +138,6 @@ class ToTextVisitorWithStatistics(ToTextVisitor):
         self.addcode(
             instruction, '{0}   (*{1.item_count})'.format(name, statistics))
 
-    def format_call_line(self, i_call):
-        statistics = self.statistics[i_call.index]
-        return (
-            'CALL "{0}"    (*{1.item_count})'
-            .format(i_call.label, statistics))
-
 
 class ToDotVisitor(compiler_base.ProgramVisitor):
 
@@ -187,14 +169,6 @@ class ToDotVisitor(compiler_base.ProgramVisitor):
 
     def leave_subprogram(self, label):
         self.addline('}')
-
-    def call_label(self, i_call):
-        return ''
-
-    def visit_call(self, i_call):
-        self.add_inter_cluster_edge(
-            i_call, i_call.start_instruction, self.call_label(i_call))
-        self.format_branch(i_call, 'CALL {0}'.format(i_call.label))
 
     def visit_return(self, i_return):
         if i_return.return_value is None:
@@ -280,17 +254,11 @@ class ToDotVisitorWithStatistics(ToDotVisitor):
             instruction, on_failure,
             label='False: {0.failure_count}'.format(statistics))
 
-    def call_label(self, i_call):
-        statistics = self.statistics[i_call.index]
-        return str(statistics.item_count)
-
 
 class Program(compiler_base.Program):
 
-    # FIXME: Program.__init__ should initialize statistic
-    # as well by calling runner.ensure_statistics
     def make_runner(self):
-        return StatisticsCollectorRunner()
+        return StatisticsCollectorRunner(self.instructions)
 
     @property
     def statistics(self):
@@ -414,9 +382,9 @@ def branch_rule(func):
 
 
 __all__ = [
-    Program,
-    branch, rule, branch_rule, HAVE_NOT_DONE_IT,
-    RETURN_TRUE, RETURN_FALSE,
-    IF, ELIF, ELSE, ENDIF,
-    IF_NOT, ELIF_NOT,
+    'Program',
+    'branch', 'rule', 'branch_rule', 'HAVE_NOT_DONE_IT',
+    'RETURN_TRUE', 'RETURN_FALSE',
+    'IF', 'ELIF', 'ELSE', 'ENDIF',
+    'IF_NOT', 'ELIF_NOT',
 ]

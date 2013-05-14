@@ -16,7 +16,7 @@ class TestBatchTransform_process(unittest.TestCase):
 
         self.batch = self.BATCH_CLASS()
         self.batch.get_reader = mock.Mock(spec=self.batch.get_reader)
-        self.reader = mock.MagicMock(spec=m.Reader(u''))
+        self.reader = mock.MagicMock(spec=m.Reader())
         self.data1 = mock.sentinel.a
         self.data2 = mock.sentinel.b
         self.data3 = mock.sentinel.c
@@ -30,7 +30,7 @@ class TestBatchTransform_process(unittest.TestCase):
         def store_data(data):
             self.written.append(data)
 
-        self.writer = mock.Mock(spec=m.Writer(u''))
+        self.writer = mock.Mock(spec=m.Writer())
         self.writer.write.side_effect = store_data
         self.batch.get_writer.return_value = self.writer
 

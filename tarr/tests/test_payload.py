@@ -2,7 +2,7 @@ import unittest
 import tarr.payload as m
 
 
-class PayloadTests(object):
+class PayloadTestsMixin(object):
 
     INPUT = u'INPUT'
     KEYS = list()
@@ -21,7 +21,7 @@ class PayloadTests(object):
             self.payload[self.UNKNOWN_KEY]
 
 
-class PayloadTestsWithExistingKey(PayloadTests):
+class ExistingKeysPayloadTestsMixin(PayloadTestsMixin):
 
     EXISTING_KEY = u'EXISTING KEY'
     EXISTING_VALUE = u'EXISTING VALUE'
@@ -34,7 +34,7 @@ class PayloadTestsWithExistingKey(PayloadTests):
         self.assertIs(self.EXISTING_VALUE, self.payload[self.EXISTING_KEY])
 
 
-class Test_new(PayloadTests, unittest.TestCase):
+class Test_new(PayloadTestsMixin, unittest.TestCase):
 
     def setUp(self):
         self.payload = m.new(self.INPUT)
@@ -44,7 +44,7 @@ class Test_new(PayloadTests, unittest.TestCase):
             self.payload[0]
 
 
-class Test_with_new_result(PayloadTestsWithExistingKey, unittest.TestCase):
+class Test_with_new_result(ExistingKeysPayloadTestsMixin, unittest.TestCase):
 
     def setUp(self):
         self.payload = (
@@ -82,7 +82,7 @@ class Test_with_new_result(PayloadTestsWithExistingKey, unittest.TestCase):
             sorted(overwritten_payload.keys()))
 
 
-class Test_with_key_removed(PayloadTestsWithExistingKey, unittest.TestCase):
+class Test_with_key_removed(ExistingKeysPayloadTestsMixin, unittest.TestCase):
 
     def setUp(self):
         REMOVED_KEY = u'REMOVED KEY'
@@ -96,7 +96,7 @@ class Test_with_key_removed(PayloadTestsWithExistingKey, unittest.TestCase):
             .with_key_removed(u'WKR', REMOVED_KEY))
 
 
-class Test_new_input(PayloadTestsWithExistingKey, unittest.TestCase):
+class Test_new_input(ExistingKeysPayloadTestsMixin, unittest.TestCase):
 
     def setUp(self):
         OLD_INPUT = u'OLD INPUT'

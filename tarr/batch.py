@@ -15,9 +15,6 @@ import itertools
 
 class Reader(object):
 
-    def __init__(self, input_filename):
-        pass
-
     def __iter__(self):
         pass
 
@@ -26,9 +23,6 @@ class Reader(object):
 
 
 class Writer(object):
-
-    def __init__(self, output_filename):
-        pass
 
     def write(self, data):
         pass

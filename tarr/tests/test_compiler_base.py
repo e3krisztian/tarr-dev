@@ -650,9 +650,6 @@ class RememberingVisitor(m.ProgramVisitor):
     def leave_subprogram(self, label):
         self.calls.append(('end', label))
 
-    def visit_call(self, i_call):
-        self.calls.append(('call', i_call))
-
     def visit_return(self, i_return):
         self.calls.append(('return', i_return))
 
