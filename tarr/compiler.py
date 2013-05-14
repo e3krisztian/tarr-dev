@@ -36,33 +36,6 @@ class InstructionStatistic(object):
         self.run_time += from_stat.run_time
 
 
-class StatisticsCollectorRunner(compiler_base.Runner):
-
-    statistics = list
-
-    def __init__(self, instructions):
-        super(StatisticsCollectorRunner, self).__init__()
-        self.statistics = [
-            InstructionStatistic(i) for i in xrange(len(instructions))]
-
-    def run_instruction(self, instruction, state):
-        before = datetime.now()
-        stat = self.statistics[instruction.index]
-        stat.item_count += 1
-
-        state = instruction.run(self, state)
-
-        if self.exit_status:
-            stat.success_count += 1
-        else:
-            stat.failure_count += 1
-
-        after = datetime.now()
-        stat.run_time += after - before
-
-        return state
-
-
 class ToTextVisitor(compiler_base.ProgramVisitor):
 
     def __init__(self):
@@ -257,13 +230,14 @@ class ToDotVisitorWithStatistics(ToDotVisitor):
 
 class Program(compiler_base.Program):
 
-    def make_runner(self):
-        return StatisticsCollectorRunner(self.instructions)
+    statistics = list
 
-    @property
-    def statistics(self):
-        return self.runner.statistics
+    def __init__(self, program):
+        super(Program, self).__init__(program)
+        self.statistics = [
+            InstructionStatistic(i) for i in xrange(len(self.instructions))]
 
+    # Visualizations
     def to_text(self, with_statistics=False):
         if with_statistics:
             v = ToTextVisitorWithStatistics(self.statistics)
@@ -279,6 +253,25 @@ class Program(compiler_base.Program):
             v = ToDotVisitor()
         self.accept(v)
         return v.text()
+
+    # Runner
+
+    def run_instruction(self, instruction, state):
+        before = datetime.now()
+        stat = self.statistics[instruction.index]
+        stat.item_count += 1
+
+        state = instruction.run(self, state)
+
+        if self.exit_status:
+            stat.success_count += 1
+        else:
+            stat.failure_count += 1
+
+        after = datetime.now()
+        stat.run_time += after - before
+
+        return state
 
 
 # decorators to make simple functions into Instructions

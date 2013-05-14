@@ -438,9 +438,36 @@ class ProgramVisitor(object):
         pass
 
 
-# TODO: merge Runner into Program when exit_status is no longer on Runner
-class Runner(object):
+class Program(object):
 
+    instructions = None
+
+    def __init__(self, program):
+        self.compile(program)
+
+    def compile(self, program):
+        compiler = Compiler(program)
+        compiler.compile('main')
+        self.instructions = compiler.instructions
+
+    @property
+    def start_instruction(self):
+        return self.instructions[0]
+
+    def sub_programs(self):
+        # raise AssertionError('Broken due to new macro implementation')
+        label = None
+        yield (label, self.instructions[:])
+
+    # Visitor
+    def accept(self, visitor):
+        for (label, instructions) in self.sub_programs():
+            visitor.enter_subprogram(label, instructions)
+            for i in instructions:
+                i.accept(visitor)
+            visitor.leave_subprogram(label)
+
+    # Runner
     exit_status = None
 
     def set_exit_status(self, value):
@@ -449,51 +476,11 @@ class Runner(object):
     def run_instruction(self, instruction, state):
         return instruction.run(self, state)
 
-    def run(self, start_instruction, state):
-        instruction = start_instruction
+    def run(self, state):
+        instruction = self.start_instruction
 
         while instruction:
             state = self.run_instruction(instruction, state)
             instruction = instruction.next_instruction(self.exit_status)
 
         return state
-
-
-class Program(object):
-
-    instructions = None
-    runner = None
-
-    def __init__(self, program):
-        self.compile(program)
-
-    def run(self, state):
-        return self.runner.run(self.start_instruction, state)
-
-    def compile(self, program):
-        compiler = Compiler(program)
-        compiler.compile('main')
-        self.init(compiler.instructions)
-
-    def init(self, instructions):
-        self.instructions = instructions
-        self.runner = self.make_runner()
-
-    @property
-    def start_instruction(self):
-        return self.instructions[0]
-
-    def make_runner(self):
-        return Runner()
-
-    def sub_programs(self):
-        # raise AssertionError('Broken due to new macro implementation')
-        label = None
-        yield (label, self.instructions[:])
-
-    def accept(self, visitor):
-        for (label, instructions) in self.sub_programs():
-            visitor.enter_subprogram(label, instructions)
-            for i in instructions:
-                i.accept(visitor)
-            visitor.leave_subprogram(label)
