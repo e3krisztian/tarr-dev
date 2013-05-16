@@ -11,17 +11,17 @@ from tarr.compiler_base import (
 
 class Div2(Instruction):
 
-    def run(self, runner, state):
-        return state / 2
+    def run(self, runner, data):
+        return data / 2
 
 Div2 = Div2()
 
 
 class IsOdd(BranchingInstruction):
 
-    def run(self, runner, state):
-        runner.set_exit_status(state % 2 == 1)
-        return state
+    def run(self, runner, data):
+        runner.set_exit_status(data % 2 == 1)
+        return data
 
 IsOdd = IsOdd()
 
@@ -47,21 +47,21 @@ class ValueMixin(object):
 
 class Eq(ValueMixin, BranchingInstruction):
 
-    def run(self, runner, state):
-        runner.set_exit_status(state == self.value)
-        return state
+    def run(self, runner, data):
+        runner.set_exit_status(data == self.value)
+        return data
 
 
 class Const(ValueMixin, Instruction):
 
-    def run(self, runner, state):
+    def run(self, runner, data):
         return self.value
 
 
 class Add(ValueMixin, Instruction):
 
-    def run(self, runner, state):
-        return state + self.value
+    def run(self, runner, data):
+        return data + self.value
 
 
 Add1 = Add(1)

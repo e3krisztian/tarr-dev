@@ -256,12 +256,12 @@ class Program(compiler_base.Program):
 
     # Runner
 
-    def run_instruction(self, instruction, state):
+    def run_instruction(self, instruction, data):
         before = datetime.now()
         stat = self.statistics[instruction.index]
         stat.item_count += 1
 
-        state = instruction.run(self, state)
+        data = instruction.run(self, data)
 
         if self.exit_status:
             stat.success_count += 1
@@ -271,7 +271,7 @@ class Program(compiler_base.Program):
         after = datetime.now()
         stat.run_time += after - before
 
-        return state
+        return data
 
 
 # decorators to make simple functions into Instructions

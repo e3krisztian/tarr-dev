@@ -25,8 +25,8 @@ class InstructionBase(Compilable):
     index = None
 
     # run time
-    def run(self, runner, state):
-        return state
+    def run(self, runner, data):
+        return data
 
     def next_instruction(self, exit_status):
         return None
@@ -67,11 +67,11 @@ class Return(Instruction):
     def __init__(self, return_value=True):
         self.return_value = bool(return_value)
 
-    def run(self, runner, state):
+    def run(self, runner, data):
         if self.return_value is not None:
             runner.set_exit_status(self.return_value)
 
-        return state
+        return data
 
     def compile(self, compiler):
         super(Return, self).compile(compiler)
@@ -473,14 +473,14 @@ class Program(object):
     def set_exit_status(self, value):
         self.exit_status = value
 
-    def run_instruction(self, instruction, state):
-        return instruction.run(self, state)
+    def run_instruction(self, instruction, data):
+        return instruction.run(self, data)
 
-    def run(self, state):
+    def run(self, data):
         instruction = self.start_instruction
 
         while instruction:
-            state = self.run_instruction(instruction, state)
+            data = self.run_instruction(instruction, data)
             instruction = instruction.next_instruction(self.exit_status)
 
-        return state
+        return data
