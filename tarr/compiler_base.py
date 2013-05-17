@@ -25,11 +25,9 @@ class InstructionBase(Compilable):
     index = None
 
     # run time
-    def run(self, runner, data):
-        return data
-
-    def next_instruction(self, exit_status):
-        return None
+    def run(self, flag, data):
+        raise NotImplementedError
+        # return instruction, flag, data
 
     # compile time
     def set_next_instruction(self, instruction):
@@ -48,13 +46,13 @@ class InstructionBase(Compilable):
 
 class Instruction(InstructionBase):
 
-    _next_instruction = None
+    next_instruction = None
 
-    def next_instruction(self, exit_status):
-        return self._next_instruction
+    def run(self, flag, data):
+        return self.next_instruction, flag, data
 
     def set_next_instruction(self, instruction):
-        self._next_instruction = instruction
+        self.next_instruction = instruction
 
     def accept(self, visitor):
         visitor.visit_instruction(self)
@@ -67,11 +65,8 @@ class Return(Instruction):
     def __init__(self, return_value=True):
         self.return_value = bool(return_value)
 
-    def run(self, runner, data):
-        if self.return_value is not None:
-            runner.set_exit_status(self.return_value)
-
-        return data
+    def run(self, flag, data):
+        return self.next_instruction, self.return_value, data
 
     def compile(self, compiler):
         super(Return, self).compile(compiler)
@@ -94,16 +89,17 @@ class BranchingInstruction(InstructionBase):
     instruction_on_yes = None
     instruction_on_no = None
 
-    def next_instruction(self, exit_status):
-        if exit_status:
-            return self.instruction_on_yes
-        return self.instruction_on_no
-
     def set_next_instruction(self, instruction):
         if self.instruction_on_yes is None:
             self.instruction_on_yes = instruction
         if self.instruction_on_no is None:
             self.instruction_on_no = instruction
+
+    def run(self, flag, data):
+        if flag:
+            return self.instruction_on_yes, flag, data
+        else:
+            return self.instruction_on_no, flag, data
 
     def set_instruction_on_yes(self, instruction):
         self.instruction_on_yes = instruction
@@ -468,19 +464,15 @@ class Program(object):
             visitor.leave_subprogram(label)
 
     # Runner
-    exit_status = None
-
-    def set_exit_status(self, value):
-        self.exit_status = value
-
-    def run_instruction(self, instruction, data):
-        return instruction.run(self, data)
+    def run_instruction(self, instruction, flag, data):
+        return instruction.run(flag, data)
 
     def run(self, data):
         instruction = self.start_instruction
+        flag = True
 
-        while instruction:
-            data = self.run_instruction(instruction, data)
-            instruction = instruction.next_instruction(self.exit_status)
+        while instruction is not None:
+            instruction, flag, data = self.run_instruction(
+                instruction, flag, data)
 
         return data

@@ -9,21 +9,20 @@ from tarr.compiler_base import (
     MultipleElseError, ElIfAfterElseError)
 
 
-class Div2(Instruction):
+class _Div2(Instruction):
 
-    def run(self, runner, data):
-        return data / 2
+    def run(self, flag, data):
+        return super(_Div2, self).run(flag, data / 2)
 
-Div2 = Div2()
+Div2 = _Div2()
 
 
-class IsOdd(BranchingInstruction):
+class _IsOdd(BranchingInstruction):
 
-    def run(self, runner, data):
-        runner.set_exit_status(data % 2 == 1)
-        return data
+    def run(self, flag, data):
+        return super(_IsOdd, self).run(data % 2 == 1, data)
 
-IsOdd = IsOdd()
+IsOdd = _IsOdd()
 
 
 class Noop(Instruction):
@@ -47,28 +46,23 @@ class ValueMixin(object):
 
 class Eq(ValueMixin, BranchingInstruction):
 
-    def run(self, runner, data):
-        runner.set_exit_status(data == self.value)
-        return data
+    def run(self, flag, data):
+        return super(Eq, self).run(data == self.value, data)
 
 
 class Const(ValueMixin, Instruction):
 
-    def run(self, runner, data):
-        return self.value
+    def run(self, flag, data):
+        return super(Const, self).run(flag, self.value)
 
 
 class Add(ValueMixin, Instruction):
 
-    def run(self, runner, data):
-        return data + self.value
+    def run(self, flag, data):
+        return super(Add, self).run(flag, data + self.value)
 
 
 Add1 = Add(1)
-
-
-def next_instruction(i):
-    return i.next_instruction(exit_status=True)
 
 
 class Test_Path(unittest.TestCase):
@@ -82,7 +76,7 @@ class Test_Path(unittest.TestCase):
         path.append(i1, i1)
         path.append(i2, i2)
 
-        self.assertEqual(i2, next_instruction(i1))
+        self.assertEqual(i2, i1.next_instruction)
 
     def test_InstructionAppender(self):
         # append
@@ -94,7 +88,7 @@ class Test_Path(unittest.TestCase):
         path.append(i1, i1)
         path.append(i2, i2)
 
-        self.assertEqual(i1, next_instruction(i0))
+        self.assertEqual(i1, i0.next_instruction)
 
     def test_join(self):
         # p1 p1i1   p1i2
@@ -112,8 +106,8 @@ class Test_Path(unittest.TestCase):
 
         path1.append(p1i2, p1i2)
 
-        self.assertEqual(p1i2, next_instruction(p1i1))
-        self.assertEqual(p1i2, next_instruction(p2i1))
+        self.assertEqual(p1i2, p1i1.next_instruction)
+        self.assertEqual(p1i2, p2i1.next_instruction)
 
     def test_join_a_joined_path(self):
         # p1 p1i1   p1i2
@@ -139,9 +133,9 @@ class Test_Path(unittest.TestCase):
 
         path1.append(p1i2, p1i2)
 
-        self.assertEqual(p1i2, next_instruction(p1i1))
-        self.assertEqual(p1i2, next_instruction(p2i1))
-        self.assertEqual(p1i2, next_instruction(p3i1))
+        self.assertEqual(p1i2, p1i1.next_instruction)
+        self.assertEqual(p1i2, p2i1.next_instruction)
+        self.assertEqual(p1i2, p3i1.next_instruction)
 
     def test_join_to_a_closed_path(self):
         # p1 RETURN   p1i2
@@ -160,7 +154,7 @@ class Test_Path(unittest.TestCase):
 
         path1.append(p1i2, p1i2)
 
-        self.assertEqual(p1i2, next_instruction(p2i1))
+        self.assertEqual(p1i2, p2i1.next_instruction)
 
     def test_YesBranchAppender(self):
         bi = m.BranchingInstruction()
@@ -197,7 +191,7 @@ class Test_Path(unittest.TestCase):
         path.append(i2, i2)
 
         self.assertEqual(i1, bi.instruction_on_yes)
-        self.assertEqual(i2, next_instruction(i1))
+        self.assertEqual(i2, i1.next_instruction)
 
     def test_NoBranchAppender(self):
         bi = m.BranchingInstruction()
@@ -234,7 +228,7 @@ class Test_Path(unittest.TestCase):
         path.append(i2, i2)
 
         self.assertEqual(i1, bi.instruction_on_no)
-        self.assertEqual(i2, next_instruction(i1))
+        self.assertEqual(i2, i1.next_instruction)
 
 
 class Test_Program(unittest.TestCase):

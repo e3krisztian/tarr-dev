@@ -245,7 +245,7 @@ class Test_Program_statistics(unittest.TestCase):
         self.assertEqual(self.COUNT_SENTINEL + 1, stat.item_count)
 
     def test_success_increments_success_count(self):
-        prog = self.prog(True)
+        prog = self.prog(condition=True)
         stat = prog.statistics[1]
         stat.success_count = self.COUNT_SENTINEL
 
@@ -254,7 +254,7 @@ class Test_Program_statistics(unittest.TestCase):
         self.assertEqual(self.COUNT_SENTINEL + 1, stat.success_count)
 
     def test_failure_increments_failure_count(self):
-        prog = self.prog(False)
+        prog = self.prog(condition=False)
         stat = prog.statistics[1]
         stat.failure_count = self.COUNT_SENTINEL
 

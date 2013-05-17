@@ -16,13 +16,13 @@ class WRITE_TO_FILE(tarr.compiler_base.Instruction):
         self.format = formatter
         self.filename = filename
 
-    def run(self, runner, data):
+    def run(self, flag, data):
         # NOTE: we need to do writing in UNBUFFERED mode (buffering=0)
         # as potentially there are other processes writing to the same file
         # *NOW*
         with open(self.filename, 'ab', buffering=0) as f:
             f.write(self.format(data) + '\n')
-        return data
+        return self.next_instruction, flag, data
 
     def clone(self):
         return self.__class__(filename=self.filename, formatter=self.format)

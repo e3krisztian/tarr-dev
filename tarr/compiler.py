@@ -1,7 +1,6 @@
 from tarr import compiler_base
 from datetime import datetime, timedelta
 
-
 from tarr.compiler_base import (
     Instruction, BranchingInstruction,
     RETURN_TRUE, RETURN_FALSE,
@@ -256,22 +255,24 @@ class Program(compiler_base.Program):
 
     # Runner
 
-    def run_instruction(self, instruction, data):
-        before = datetime.now()
+    def run_instruction(self, instruction, flag, data):
         stat = self.statistics[instruction.index]
         stat.item_count += 1
 
-        data = instruction.run(self, data)
+        before = datetime.now()
 
-        if self.exit_status:
+        next_instruction, flag, data = instruction.run(flag, data)
+
+        after = datetime.now()
+
+        if flag:
             stat.success_count += 1
         else:
             stat.failure_count += 1
 
-        after = datetime.now()
         stat.run_time += after - before
 
-        return data
+        return next_instruction, flag, data
 
 
 # decorators to make simple functions into Instructions
@@ -291,9 +292,9 @@ class TarrInstructionBase(object):
 
 class TarrRuleInstruction(TarrInstructionBase, Instruction):
 
-    def run(self, runner, data):
+    def run(self, flag, data):
         data.payload = self.func(data.payload)
-        return data
+        return self.next_instruction, flag, data
 
 
 def rule(func):
@@ -313,9 +314,11 @@ def rule(func):
 
 class TarrBranchInstruction(TarrInstructionBase, BranchingInstruction):
 
-    def run(self, runner, data):
-        runner.set_exit_status(self.func(data.payload))
-        return data
+    def run(self, flag, data):
+        if self.func(data.payload):
+            return self.instruction_on_yes, True, data
+        else:
+            return self.instruction_on_no, False, data
 
 
 def branch(func):
@@ -338,13 +341,14 @@ HAVE_NOT_DONE_IT = object()
 
 class TarrBranchRuleInstruction(TarrBranchInstruction):
 
-    def run(self, runner, data):
+    def run(self, flag, data):
         output = self.func(data.payload)
         done_it = output is not HAVE_NOT_DONE_IT
-        runner.set_exit_status(done_it)
         if done_it:
             data.payload = output
-        return data
+            return self.instruction_on_yes, True, data
+        else:
+            return self.instruction_on_no, False, data
 
 
 # FIXME: rename to branch_if_not_done
