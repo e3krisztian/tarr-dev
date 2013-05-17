@@ -1,5 +1,7 @@
 from tarr import compiler_base
 from datetime import datetime, timedelta
+from collections import defaultdict
+
 
 from tarr.compiler_base import (
     Instruction, BranchingInstruction,
@@ -54,31 +56,19 @@ class ToTextVisitor(compiler_base.ProgramVisitor):
 
     def format_branch(self, instruction, name):
         self.addcode(instruction, name)
-        on_success = instruction.next_instruction(exit_status=True).index
-        on_failure = instruction.next_instruction(exit_status=False).index
-        self.addcomment('  # True  -> {0}'.format(on_success))
-        self.addcomment('  # False -> {0}'.format(on_failure))
+        on_success = instruction.instruction_on_yes
+        on_failure = instruction.instruction_on_no
+        if on_success:
+            self.addcomment('  # True  -> {0}'.format(on_success.index))
+        if on_failure:
+            self.addcomment('  # False -> {0}'.format(on_failure.index))
 
     def format_instruction(self, instruction, name):
         self.addcode(instruction, name)
 
-    def enter_subprogram(self, label, instructions):
-        if label is not None:
-            self.addline('')
-            self.addline('DEF ("{0}")'.format(label))
-
-    def leave_subprogram(self, label):
-        if label is None:
-            self.addline('END OF MAIN PROGRAM')
-        else:
-            self.addline('END # {0}'.format(label))
-
     def visit_return(self, i_return):
-        if i_return.return_value is None:
-            self.format_instruction(i_return, 'RETURN')
-        else:
-            self.format_instruction(
-                i_return, 'RETURN {0}'.format(i_return.return_value))
+        self.format_instruction(
+            i_return, 'RETURN {0}'.format(i_return.return_value))
 
     def visit_instruction(self, instruction):
         self.addcode(instruction, instruction.instruction_name)
@@ -96,14 +86,16 @@ class ToTextVisitorWithStatistics(ToTextVisitor):
     def format_branch(self, instruction, name):
         statistics = self.statistics[instruction.index]
         self.addcode(instruction, name)
-        on_success = instruction.next_instruction(exit_status=True).index
-        on_failure = instruction.next_instruction(exit_status=False).index
-        self.addcomment(
-            '  # True  -> {0}   (*{1.success_count})'
-            .format(on_success, statistics))
-        self.addcomment(
-            '  # False -> {0}   (*{1.failure_count})'
-            .format(on_failure, statistics))
+        on_success = instruction.instruction_on_yes
+        on_failure = instruction.instruction_on_no
+        if on_success:
+            self.addcomment(
+                '  # True  -> {0}   (*{1.success_count})'
+                .format(on_success.index, statistics))
+        if on_failure:
+            self.addcomment(
+                '  # False -> {0}   (*{1.failure_count})'
+                .format(on_failure.index, statistics))
 
     def format_instruction(self, instruction, name):
         statistics = self.statistics[instruction.index]
@@ -114,66 +106,58 @@ class ToTextVisitorWithStatistics(ToTextVisitor):
 class ToDotVisitor(compiler_base.ProgramVisitor):
 
     def __init__(self):
-        self.lines = ['digraph {', '', 'compound = true;']
-        self.inter_cluster_edges = []
+        self.lines = ['digraph {']
+        self.edge_labels = defaultdict(set)
+        self.edges = set()
 
     def text(self):
-        extras = []
-        if self.inter_cluster_edges:
-            extras.extend(['', '// inter-cluster-edges'])
-            extras.extend(self.inter_cluster_edges)
-        extras.append('}')
-        return '\n'.join(self.lines + extras)
+        return '\n'.join(self.lines)
 
     def addline(self, line, is_comment=False):
         self.lines.append(line)
 
-    def add_inter_cluster_edge(self, instruction1, instruction2, label):
-        self.inter_cluster_edges.append(
-            self.format_edge(instruction1, instruction2, label))
-
-    def enter_subprogram(self, label, instructions):
-        self.addline('')
-        self.addline('subgraph {} {{'.format(self.cluster_name(label)))
-        if label is not None:
-            self.addline('    label = "{}";'.format(self.escape(label)))
-            self.addline('')
-
-    def leave_subprogram(self, label):
-        self.addline('}')
+    def register_edge(self, instruction1, instruction2):
+        if instruction2 is not None:
+            self.edges.add((instruction1.index, instruction2.index))
 
     def visit_return(self, i_return):
-        if i_return.return_value is None:
-            node_name = 'RETURN'
-        else:
-            node_name = 'RETURN {0}'.format(i_return.return_value)
+        node_name = 'RETURN {0}'.format(i_return.return_value)
         self.add_return_node(i_return, node_name)
+        self.register_edge(i_return, i_return.next_instruction)
 
     def visit_instruction(self, instruction):
         self.format_instruction(instruction, instruction.instruction_name)
+        self.register_edge(instruction, instruction.next_instruction)
 
     def visit_branch(self, i_branch):
         self.format_branch(i_branch, i_branch.instruction_name)
+        self.register_edge(i_branch, i_branch.instruction_on_yes)
+        self.register_edge(i_branch, i_branch.instruction_on_no)
 
-    def cluster_name(self, label):
-        return '"cluster_{}"'.format(self.escape(label))
+    def end_program(self):
+        self.add_edges()
+        self.addline('}')
 
-    def node_name(self, instruction):
-        return 'node_{}'.format(instruction.index)
+    def node_name(self, instruction_index):
+        return 'node_{}'.format(instruction_index)
 
     def escape(self, label):
         return str(label).replace('"', r'\"')
 
     def add_node(self, instruction, name):
-        node = self.node_name(instruction)
+        node = self.node_name(instruction.index)
         self.addline('    {} [label="{}"];'.format(node, self.escape(name)))
 
     def add_return_node(self, instruction, name):
         self.add_node(instruction, name)
 
-    def format_edge(self, instruction1, instruction2, label):
-        node1 = self.node_name(instruction1)
-        node2 = self.node_name(instruction2)
+    def add_edges(self):
+        for (i, j) in self.edges:
+            self.add_edge(i, j, ', '.join(sorted(self.edge_labels[(i, j)])))
+
+    def format_edge(self, instruction_index1, instruction_index2, label):
+        node1 = self.node_name(instruction_index1)
+        node2 = self.node_name(instruction_index2)
         attrs = dict()
         if label:
             attrs['label'] = '"{}"'.format(self.escape(label))
@@ -187,20 +171,24 @@ class ToDotVisitor(compiler_base.ProgramVisitor):
 
         return '    {} -> {}{};'.format(node1, node2, formatted_attrs)
 
-    def add_edge(self, instruction1, instruction2, label):
-        self.addline(self.format_edge(instruction1, instruction2, label))
+    def add_edge(self, instruction_index1, instruction_index2, label):
+        self.addline(
+            self.format_edge(instruction_index1, instruction_index2, label))
+
+    def add_edge_label(self, instruction1, instruction2, label):
+        self.edge_labels[(instruction1.index, instruction2.index)].add(label)
 
     def format_branch(self, instruction, name):
         self.add_node(instruction, name)
-        on_success = instruction.next_instruction(exit_status=True)
-        on_failure = instruction.next_instruction(exit_status=False)
-        self.add_edge(instruction, on_success, label='True')
-        self.add_edge(instruction, on_failure, label='False')
+        on_success = instruction.instruction_on_yes
+        on_failure = instruction.instruction_on_no
+        if on_success:
+            self.add_edge_label(instruction, on_success, 'True')
+        if on_failure:
+            self.add_edge_label(instruction, on_failure, 'False')
 
     def format_instruction(self, instruction, name):
         self.add_node(instruction, name)
-        next_instruction = instruction.next_instruction(exit_status=True)
-        self.add_edge(instruction, next_instruction, label='')
 
 
 class ToDotVisitorWithStatistics(ToDotVisitor):
@@ -216,25 +204,31 @@ class ToDotVisitorWithStatistics(ToDotVisitor):
 
     def format_branch(self, instruction, name):
         self.add_node(instruction, name)
-        on_success = instruction.next_instruction(exit_status=True)
-        on_failure = instruction.next_instruction(exit_status=False)
         statistics = self.statistics[instruction.index]
-        self.add_edge(
-            instruction, on_success,
-            label='True: {0.success_count}'.format(statistics))
-        self.add_edge(
-            instruction, on_failure,
-            label='False: {0.failure_count}'.format(statistics))
+        on_success = instruction.instruction_on_yes
+        on_failure = instruction.instruction_on_no
+        if on_success:
+            self.add_edge_label(
+                instruction,
+                on_success,
+                label='True: {0.success_count}'.format(statistics))
+        if on_failure:
+            self.add_edge_label(
+                instruction,
+                on_failure,
+                label='False: {0.failure_count}'.format(statistics))
 
 
 class Program(compiler_base.Program):
 
     statistics = list
+    route_counts = defaultdict # (int)
 
     def __init__(self, program):
         super(Program, self).__init__(program)
         self.statistics = [
             InstructionStatistic(i) for i in xrange(len(self.instructions))]
+        self.route_counts = defaultdict(int)
 
     # Visualizations
     def to_text(self, with_statistics=False):
@@ -269,6 +263,9 @@ class Program(compiler_base.Program):
             stat.success_count += 1
         else:
             stat.failure_count += 1
+
+        if next_instruction is not None:
+            self.route_counts[(instruction.index, next_instruction.index)] += 1
 
         stat.run_time += after - before
 

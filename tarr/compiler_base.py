@@ -117,6 +117,8 @@ class EndSubProgram(BranchingInstruction):
     Returns continue here.
     '''
 
+    instruction_name = '_END_'
+
 
 class CompileIf(Compilable):
 
@@ -418,12 +420,6 @@ class Compiler(object):
 
 class ProgramVisitor(object):
 
-    def enter_subprogram(self, label, instructions):
-        pass
-
-    def leave_subprogram(self, label):
-        pass
-
     def visit_return(self, i_return):
         pass
 
@@ -431,6 +427,9 @@ class ProgramVisitor(object):
         pass
 
     def visit_branch(self, i_branch):
+        pass
+
+    def end_program(self):
         pass
 
 
@@ -450,19 +449,6 @@ class Program(object):
     def start_instruction(self):
         return self.instructions[0]
 
-    def sub_programs(self):
-        # raise AssertionError('Broken due to new macro implementation')
-        label = None
-        yield (label, self.instructions[:])
-
-    # Visitor
-    def accept(self, visitor):
-        for (label, instructions) in self.sub_programs():
-            visitor.enter_subprogram(label, instructions)
-            for i in instructions:
-                i.accept(visitor)
-            visitor.leave_subprogram(label)
-
     # Runner
     def run_instruction(self, instruction, flag, data):
         return instruction.run(flag, data)
@@ -476,3 +462,8 @@ class Program(object):
                 instruction, flag, data)
 
         return data
+
+    def accept(self, visitor):
+        for instruction in self.instructions:
+            instruction.accept(visitor)
+        visitor.end_program()

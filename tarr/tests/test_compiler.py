@@ -2,6 +2,7 @@ import unittest
 import tarr.compiler as m
 from tarr.data import Data
 import tarr.tests.test_compiler_base
+import textwrap
 
 
 Noop = m.Instruction()
@@ -44,91 +45,69 @@ def die(param):
 
 
 TEST_TO_TEXT_WITHOUT_STATISTICS = (
-'''   0 CALL "su"bprogram"
+    '''\
+   0 odd
        # True  -> 1
-       # False -> 1
-   1 RETURN True
-END OF MAIN PROGRAM
-
-DEF ("su"bprogram")
-   2 odd
-       # True  -> 3
+       # False -> 3
+   1 add1
+   2 RETURN False
+   3 RETURN True
+   4 _END_
+       # True  -> 5
        # False -> 5
-   3 add1
-   4 RETURN False
    5 RETURN True
-END # su"bprogram''')
+   6 _END_''')
 
 TEST_TO_TEXT_WITH_STATISTICS = (
-'''   0 CALL "su"bprogram"    (*3)
-       # True  -> 1   (*2)
-       # False -> 1   (*1)
-   1 RETURN True   (*3)
-END OF MAIN PROGRAM
-
-DEF ("su"bprogram")
-   2 odd
-       # True  -> 3   (*1)
-       # False -> 5   (*2)
-   3 add1
-   4 RETURN False   (*1)
-   5 RETURN True   (*2)
-END # su"bprogram''')
+    '''\
+   0 odd
+       # True  -> 1   (*1)
+       # False -> 3   (*2)
+   1 add1
+   2 RETURN False   (*1)
+   3 RETURN True   (*2)
+   4 _END_
+       # True  -> 5   (*2)
+       # False -> 5   (*1)
+   5 RETURN True   (*3)
+   6 _END_''')
 
 TEST_TO_DOT_WITHOUT_STATISTICS = (
-r'''digraph {
-
-compound = true;
-
-subgraph "cluster_None" {
-    node_0 [label="CALL su\"bprogram"];
-    node_0 -> node_1 [label="True"];
-    node_0 -> node_1 [label="False"];
-    node_1 [label="RETURN True"];
-}
-
-subgraph "cluster_su\"bprogram" {
-    label = "su\"bprogram";
-
-    node_2 [label="odd"];
-    node_2 -> node_3 [label="True"];
-    node_2 -> node_5 [label="False"];
-    node_3 [label="add1"];
-    node_3 -> node_4;
-    node_4 [label="RETURN False"];
+    '''\
+digraph {
+    node_0 [label="odd"];
+    node_1 [label="add1"];
+    node_2 [label="RETURN False"];
+    node_3 [label="RETURN True"];
+    node_4 [label="_END_"];
     node_5 [label="RETURN True"];
-}
-
-// inter-cluster-edges
-    node_0 -> node_2;
+    node_6 [label="_END_"];
+    node_0 -> node_1 [label="True"];
+    node_1 -> node_2;
+    node_4 -> node_5 [label="False, True"];
+    node_5 -> node_6;
+    node_0 -> node_3 [label="False"];
+    node_3 -> node_4;
+    node_2 -> node_4;
 }''')
 
 TEST_TO_DOT_WITH_STATISTICS = (
-r'''digraph {
-
-compound = true;
-
-subgraph "cluster_None" {
-    node_0 [label="CALL su\"bprogram"];
-    node_0 -> node_1 [label="True: 2"];
-    node_0 -> node_1 [label="False: 1"];
-    node_1 [label="RETURN True: 3"];
-}
-
-subgraph "cluster_su\"bprogram" {
-    label = "su\"bprogram";
-
-    node_2 [label="odd"];
-    node_2 -> node_3 [label="True: 1"];
-    node_2 -> node_5 [label="False: 2"];
-    node_3 [label="add1"];
+    '''\
+digraph {
+    node_0 [label="odd"];
+    node_1 [label="add1"];
+    node_2 [label="RETURN False: 1"];
+    node_3 [label="RETURN True: 2"];
+    node_4 [label="_END_"];
+    node_5 [label="RETURN True: 3"];
+    node_6 [label="_END_"];
+    node_0 -> node_1 [label="True: 1"];
+    node_1 -> node_2;
+    node_4 -> node_5 [label="False: 1, True: 2"];
+    node_5 -> node_6;
+    node_0 -> node_3 [label="False: 2"];
     node_3 -> node_4;
-    node_4 [label="RETURN False: 1"];
-    node_5 [label="RETURN True: 2"];
-}
-
-// inter-cluster-edges
-    node_0 -> node_2 [label="3"];
+    node_2 -> node_4;
 }''')
 
 
@@ -144,7 +123,6 @@ class Test_Program(tarr.tests.test_compiler_base.Test_Program):
     PROGRAM_CLASS = m.Program
 
 
-@unittest.skip('visualization tests are broken during macro implementation')
 class Test_Program_visualization(unittest.TestCase):
 
     visualized_program_spec = {

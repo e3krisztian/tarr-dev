@@ -548,8 +548,6 @@ class Test_Program(unittest.TestCase):
         indices = [i.index for i in prog.instructions]
         self.assertEqual(range(len(prog.instructions)), indices)
 
-    @unittest.skip(
-        'visiting a program is broken due to new macro implementation')
     def test_sub_programs(self):
         prog = self.program({
             'main': [
@@ -567,28 +565,8 @@ class Test_Program(unittest.TestCase):
             ]
         })
 
-        sub_programs = iter(prog.sub_programs())
-        sub_program = sub_programs.next()
-        self.assertEqual(None, sub_program[0])
-        self.assertEqual(2, len(sub_program[1]))  # Add1, RETURN
+        self.assertEqual(3, len(prog.instructions))  # Add1, RETURN, _END_
 
-        sub_program = sub_programs.next()
-        self.assertEqual('x1', sub_program[0])
-        self.assertEqual(1, len(sub_program[1]))  # RETURN
-
-        sub_program = sub_programs.next()
-        self.assertEqual('x2', sub_program[0])
-        self.assertEqual(1, len(sub_program[1]))  # RETURN
-
-        sub_program = sub_programs.next()
-        self.assertEqual('x3', sub_program[0])
-        self.assertEqual(3, len(sub_program[1]))  # Add1, Add1, RETURN
-
-        with self.assertRaises(StopIteration):
-            sub_programs.next()
-
-    @unittest.skip(
-        'visiting a program is broken due to new macro implementation')
     def program_for_visiting_with_all_features(self):
         return self.program({
             'main': ['x', m.RETURN_TRUE],
@@ -618,16 +596,13 @@ class Test_Program(unittest.TestCase):
         i = prog.instructions
         self.assertEqual(
             [
-            ('subprogram', None),
-                ('call', i[0]),
-                ('return', i[1]),
-            ('end', None),
-
-            ('subprogram', 'x'),
-                ('branch', i[2]),
-                ('instruction', i[3]),
-                ('return', i[4]),
-            ('end', 'x')
+            ('branch', i[0]),
+            ('instruction', i[1]),
+            ('return', i[2]),
+            ('branch', i[3]),
+            ('return', i[4]),
+            ('branch', i[5]),
+            ('end')
             ], remembering_visitor.calls)
 
 
@@ -638,12 +613,6 @@ class RememberingVisitor(m.ProgramVisitor):
     def __init__(self):
         self.calls = []
 
-    def enter_subprogram(self, label, instructions):
-        self.calls.append(('subprogram', label))
-
-    def leave_subprogram(self, label):
-        self.calls.append(('end', label))
-
     def visit_return(self, i_return):
         self.calls.append(('return', i_return))
 
@@ -652,3 +621,6 @@ class RememberingVisitor(m.ProgramVisitor):
 
     def visit_branch(self, i_branch):
         self.calls.append(('branch', i_branch))
+
+    def end_program(self):
+        self.calls.append('end')
